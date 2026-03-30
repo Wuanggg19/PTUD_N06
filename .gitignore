@@ -1,0 +1,12 @@
+﻿*.jar
+*.war
+*.class
+*.exe
+*.dll
+*.zip
+*.rar
+build/
+dist/
+target/
+node_modules/
+bin/
