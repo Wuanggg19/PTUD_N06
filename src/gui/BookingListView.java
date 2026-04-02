@@ -4,20 +4,26 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
 
 import connectDB.ConnectDB;
 import dao.PhieuDatPhongDAO;
+import dao.PhongDAO;
+import dao.ChiTietPhieuDatDAO;
 import entity.PhieuDatPhong;
+import entity.ChiTietPhieuDat;
+import entity.Phong;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.time.format.DateTimeFormatter;
 
 /**
  * ================================================================
@@ -42,6 +48,7 @@ public class BookingListView {
 
     private TableView<PhieuDatPhong> tableView;
     private ObservableList<PhieuDatPhong> dataList = FXCollections.observableArrayList();
+    private List<PhieuDatPhong> fullData = new ArrayList<>();
     private TextField txtSearch;
     private ComboBox<String> cboFilter;
 
@@ -64,15 +71,14 @@ public class BookingListView {
         txtSearch.setPrefWidth(280);
         txtSearch.setPrefHeight(36);
         txtSearch.setStyle("-fx-background-radius: 8; -fx-border-radius: 8; -fx-border-color: #dce1e7; -fx-padding: 0 10;");
-
-        Button btnSearch = createButton("Tìm kiếm", BTN_INFO);
-        btnSearch.setOnAction(e -> handleSearch());
+        txtSearch.textProperty().addListener((o, v, n) -> handleSearch());
 
         cboFilter = new ComboBox<>(FXCollections.observableArrayList(
-                "Tất cả", "Chờ xác nhận", "Đã xác nhận", "Đang ở", "Đã trả phòng", "Đã hủy"
+                "Tất cả", "DaNhanPhong", "DaThanhToan", "DaHuy"
         ));
         cboFilter.setValue("Tất cả");
         cboFilter.setPrefHeight(36);
+        cboFilter.setPrefWidth(150);
         cboFilter.setOnAction(e -> handleFilter());
 
         Region spacer = new Region();
@@ -81,7 +87,7 @@ public class BookingListView {
         Button btnRefresh = createButton("🔄  Làm mới", "#27ae60");
         btnRefresh.setOnAction(e -> loadData());
 
-        toolbar.getChildren().addAll(txtSearch, btnSearch, new Label("Trạng thái:"), cboFilter, spacer, btnRefresh);
+        toolbar.getChildren().addAll(txtSearch, new Label("Trạng thái:"), cboFilter, spacer, btnRefresh);
 
         // --- Bảng dữ liệu ---
         tableView = new TableView<>(dataList);
@@ -100,36 +106,26 @@ public class BookingListView {
                         ? data.getValue().getKhachHang().getTenKhachHang()
                         : ""));
 
-        TableColumn<PhieuDatPhong, String> colPhong = new TableColumn<>("Mã Phòng");
-        colPhong.setCellValueFactory(data ->
-                new javafx.beans.property.SimpleStringProperty(data.getValue().getMaPhong()));
-
-        TableColumn<PhieuDatPhong, String> colNgayDat = new TableColumn<>("Ngày Đặt");
+        TableColumn<PhieuDatPhong, String> colNgayDat = new TableColumn<>("Ngày Lập Phiếu");
         colNgayDat.setCellValueFactory(data ->
                 new javafx.beans.property.SimpleStringProperty(
                         data.getValue().getNgayDat() != null
-                        ? data.getValue().getNgayDat().toString()
-                        : ""));
-
-        TableColumn<PhieuDatPhong, String> colNgayNhan = new TableColumn<>("Ngày Nhận Phòng");
-        colNgayNhan.setCellValueFactory(data ->
-                new javafx.beans.property.SimpleStringProperty(
-                        data.getValue().getNgayNhanPhong() != null
-                        ? data.getValue().getNgayNhanPhong().toString()
-                        : ""));
-
-        TableColumn<PhieuDatPhong, String> colNgayTra = new TableColumn<>("Ngày Trả Phòng");
-        colNgayTra.setCellValueFactory(data ->
-                new javafx.beans.property.SimpleStringProperty(
-                        data.getValue().getNgayTraPhong() != null
-                        ? data.getValue().getNgayTraPhong().toString()
+                        ? data.getValue().getNgayDat().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))
                         : ""));
 
         TableColumn<PhieuDatPhong, String> colTrangThai = new TableColumn<>("Trạng Thái");
+        colTrangThai.setPrefWidth(200);
         colTrangThai.setCellValueFactory(data ->
                 new javafx.beans.property.SimpleStringProperty(data.getValue().getTrangThai()));
 
-        tableView.getColumns().addAll(colMa, colKhach, colPhong, colNgayDat, colNgayNhan, colNgayTra, colTrangThai);
+        tableView.getColumns().addAll(colMa, colKhach, colNgayDat, colTrangThai);
+
+        // Double click to view detail
+        tableView.setOnMouseClicked(event -> {
+            if (event.getClickCount() == 2 && tableView.getSelectionModel().getSelectedItem() != null) {
+                handleViewDetail();
+            }
+        });
 
         // --- Nút hành động ---
         HBox actionBar = new HBox(12);
@@ -144,64 +140,141 @@ public class BookingListView {
         return root;
     }
 
-    /**
-     * TODO: Tải toàn bộ danh sách phiếu đặt phòng từ database.
-     *       Gợi ý: Dùng PhieuDatPhongDAO.getAllPhieuDatPhong()
-     */
     public void loadData() {
-        try {
-            if (ConnectDB.getConnection() == null) return;
-            PhieuDatPhongDAO dao = new PhieuDatPhongDAO();
-            List<PhieuDatPhong> list = dao.getAllPhieuDatPhong();
-            dataList.setAll(list != null ? list : new ArrayList<>());
-        } catch (Exception e) {
-            e.printStackTrace();
-            showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể tải dữ liệu: " + e.getMessage());
-        }
+        Task<List<PhieuDatPhong>> task = new Task<List<PhieuDatPhong>>() {
+            @Override
+            protected List<PhieuDatPhong> call() throws Exception {
+                return new PhieuDatPhongDAO().getAllPhieuDatPhong();
+            }
+        };
+        task.setOnSucceeded(e -> {
+            fullData = task.getValue();
+            applyFilterAndSearch();
+        });
+        task.setOnFailed(e -> {
+            e.getSource().getException().printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể tải dữ liệu từ server.");
+        });
+        new Thread(task).start();
     }
 
-    /**
-     * TODO: Tìm kiếm phiếu đặt phòng theo từ khóa trong txtSearch.
-     *       Lọc từ dataList theo tên khách hàng hoặc mã phiếu.
-     */
     private void handleSearch() {
-        // TODO: Implement tìm kiếm
-        showAlert(Alert.AlertType.INFORMATION, "Thông báo", "Chức năng tìm kiếm đang được phát triển.");
+        applyFilterAndSearch();
     }
 
-    /**
-     * TODO: Lọc danh sách theo trạng thái được chọn trong cboFilter.
-     */
     private void handleFilter() {
-        // TODO: Implement lọc theo trạng thái
+        applyFilterAndSearch();
     }
 
-    /**
-     * TODO: Hiển thị chi tiết phiếu đặt phòng đang được chọn trong bảng.
-     *       Gợi ý: Dùng tableView.getSelectionModel().getSelectedItem()
-     */
+    private void applyFilterAndSearch() {
+        if (fullData == null) return;
+        String search = txtSearch.getText().toLowerCase().trim();
+        String filter = cboFilter.getValue();
+
+        List<PhieuDatPhong> filtered = fullData.stream()
+            .filter(p -> filter.equals("Tất cả") || p.getTrangThai().contains(filter))
+            .filter(p -> search.isEmpty() 
+                    || p.getMaDatPhong().toLowerCase().contains(search) 
+                    || (p.getKhachHang() != null && p.getKhachHang().getTenKhachHang().toLowerCase().contains(search)))
+            .collect(Collectors.toList());
+        
+        dataList.setAll(filtered);
+    }
+
     private void handleViewDetail() {
         PhieuDatPhong selected = tableView.getSelectionModel().getSelectedItem();
         if (selected == null) {
             showAlert(Alert.AlertType.WARNING, "Chưa chọn", "Vui lòng chọn một phiếu đặt phòng.");
             return;
         }
-        // TODO: Hiển thị dialog chi tiết phiếu đặt phòng
-        showAlert(Alert.AlertType.INFORMATION, "Chi tiết", "Mã phiếu: " + selected.getMaDatPhong() + "\nChức năng chi tiết đang phát triển.");
+
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("CHI TIẾT PHIÊU ĐẶT PHÒNG - " + selected.getMaDatPhong());
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+
+        VBox content = new VBox(15);
+        content.setPadding(new Insets(20));
+        content.setPrefWidth(550);
+
+        GridPane infoGrid = new GridPane();
+        infoGrid.setHgap(30); infoGrid.setVgap(10);
+        
+        Label lblKH = new Label(selected.getKhachHang() != null ? selected.getKhachHang().getTenKhachHang() : "N/A");
+        lblKH.setStyle("-fx-font-weight: bold;");
+        Label lblSdt = new Label(selected.getKhachHang() != null ? selected.getKhachHang().getSoDienThoai() : "N/A");
+        Label lblNV = new Label(selected.getNhanVien() != null ? selected.getNhanVien().getMaNhanVien() : "N/A");
+        Label lblStatus = new Label(selected.getTrangThai());
+        lblStatus.setTextFill(selected.getTrangThai().contains("DaHuy") ? Color.RED : Color.GREEN);
+
+        infoGrid.add(new Label("Khách hàng:"), 0, 0); infoGrid.add(lblKH, 1, 0);
+        infoGrid.add(new Label("Số điện thoại:"), 0, 1); infoGrid.add(lblSdt, 1, 1);
+        infoGrid.add(new Label("Nhân viên lập:"), 0, 2); infoGrid.add(lblNV, 1, 2);
+        infoGrid.add(new Label("Trạng thái:"), 0, 3); infoGrid.add(lblStatus, 1, 3);
+
+        Label lblRoomTitle = new Label("DANH SÁCH CHI TIẾT PHÒNG:");
+        lblRoomTitle.setStyle("-fx-font-weight: bold; -fx-text-fill: " + ACCENT + ";");
+
+        VBox detailBox = new VBox(8);
+        detailBox.setStyle("-fx-background-color: #f8fafc; -fx-padding: 15; -fx-background-radius: 8; -fx-border-color: #e2e8f0;");
+        
+        List<ChiTietPhieuDat> dsCT = new ChiTietPhieuDatDAO().getDSChiTietByMaPhieu(selected.getMaDatPhong());
+        if (dsCT.isEmpty()) {
+            detailBox.getChildren().add(new Label("(Không lấy được thông tin chi tiết phòng)"));
+        } else {
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+            for (ChiTietPhieuDat ct : dsCT) {
+                Phong p = new PhongDAO().getPhongByMa(ct.getPhong().getMaPhong());
+                Label roomInfo = new Label(String.format("• Phòng %s | Loại: %s | Giá: %,.0f VNĐ", 
+                        ct.getPhong().getMaPhong(), 
+                        (p != null ? p.getLoaiPhong() : "N/A"),
+                        ct.getGiaThuePhong()));
+                Label dateInfo = new Label(String.format("  Nhận: %s -> Trả: %s", 
+                        ct.getNgayNhan().format(dtf), 
+                        ct.getNgayTra().format(dtf)));
+                dateInfo.setStyle("-fx-text-fill: #64748b; -fx-font-size: 12px;");
+                detailBox.getChildren().addAll(roomInfo, dateInfo);
+            }
+        }
+
+        content.getChildren().addAll(new Label("MÃ PHIẾU: " + selected.getMaDatPhong()), infoGrid, new Separator(), lblRoomTitle, detailBox);
+        dialog.getDialogPane().setContent(content);
+        dialog.showAndWait();
     }
 
-    /**
-     * TODO: Hủy phiếu đặt phòng đang được chọn.
-     *       Gợi ý: Cập nhật trạng thái thành "Đã hủy" trong DB.
-     */
     private void handleCancel() {
         PhieuDatPhong selected = tableView.getSelectionModel().getSelectedItem();
         if (selected == null) {
             showAlert(Alert.AlertType.WARNING, "Chưa chọn", "Vui lòng chọn một phiếu đặt phòng để hủy.");
             return;
         }
-        // TODO: Implement hủy phiếu đặt phòng
-        showAlert(Alert.AlertType.INFORMATION, "Thông báo", "Chức năng hủy phiếu đang được phát triển.");
+
+        if (selected.getTrangThai().contains("DaThanhToan") || selected.getTrangThai().contains("DaHuy")) {
+            showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể hủy phiếu đã thanh toán hoặc đã hủy.");
+            return;
+        }
+
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION, 
+                "Bạn có chắc chắn muốn hủy phiếu " + selected.getMaDatPhong() + "?\nHành động này sẽ trả tất cả phòng trong phiếu về trạng thái 'Trống'.", 
+                ButtonType.YES, ButtonType.NO);
+        confirm.setTitle("Xác nhận hủy phiếu");
+        confirm.setHeaderText(null);
+        
+        confirm.showAndWait().ifPresent(type -> {
+            if (type == ButtonType.YES) {
+                try {
+                    boolean ok = new PhieuDatPhongDAO().huyPhieu(selected.getMaDatPhong());
+                    if (ok) {
+                        showAlert(Alert.AlertType.INFORMATION, "Thành công", "Đã hủy phiếu đặt phòng thành công.");
+                        loadData();
+                    } else {
+                        showAlert(Alert.AlertType.ERROR, "Thất bại", "Lỗi khi cập nhật database.");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    showAlert(Alert.AlertType.ERROR, "Lỗi", "Lỗi hệ thống: " + e.getMessage());
+                }
+            }
+        });
     }
 
     private Button createButton(String text, String color) {

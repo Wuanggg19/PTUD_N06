@@ -99,12 +99,13 @@ public class MainFrame extends JFrame {
     private void showDashboardWithDelay() {
         if (!menuButtons.isEmpty()) {
             setButtonActive(menuButtons.get(0));
-            new Thread(() -> {
-                try { Thread.sleep(400); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
-                Platform.runLater(() -> {
-                    try { showCard("Dashboard"); } catch (Exception e) { e.printStackTrace(); }
-                });
-            }).start();
+            // Force show Dashboard immediately if possible
+            Platform.runLater(() -> {
+                try { 
+                    showCard("Dashboard");
+                    System.out.println("DEBUG: Auto-showing Dashboard...");
+                } catch (Exception e) { e.printStackTrace(); }
+            });
         }
     }
 
@@ -125,15 +126,15 @@ public class MainFrame extends JFrame {
         top.setPadding(new Insets(28, 20, 18, 20));
         Label lblLogo = new Label("🏨  HOTEL SYSTEM");
         lblLogo.setTextFill(javafx.scene.paint.Color.WHITE);
-        lblLogo.setFont(Font.font("Inter", FontWeight.BOLD, 20));
+        lblLogo.setFont(javafx.scene.text.Font.font("Inter", javafx.scene.text.FontWeight.BOLD, 20));
 
         Label lblRole = new Label(name + "  ·  " + role);
         lblRole.setTextFill(javafx.scene.paint.Color.rgb(255, 255, 255, 0.65));
-        lblRole.setFont(Font.font("Inter", 12));
+        lblRole.setFont(javafx.scene.text.Font.font("Inter", 12));
 
         lblClock = new Label();
         lblClock.setTextFill(javafx.scene.paint.Color.rgb(255, 255, 255, 0.85));
-        lblClock.setFont(Font.font("Inter", FontWeight.BOLD, 13));
+        lblClock.setFont(Font.font("Inter", javafx.scene.text.FontWeight.BOLD, 13));
         top.getChildren().addAll(lblLogo, lblRole, lblClock);
 
         javafx.scene.control.Separator sep = new javafx.scene.control.Separator();
@@ -184,7 +185,7 @@ public class MainFrame extends JFrame {
         bottom.setAlignment(Pos.CENTER);
         Button btnLogout = new Button("  🚪  Đăng xuất");
         btnLogout.setPrefSize(238, 44);
-        btnLogout.setFont(Font.font("Inter", FontWeight.BOLD, 13));
+        btnLogout.setFont(javafx.scene.text.Font.font("Inter", javafx.scene.text.FontWeight.BOLD, 13));
         String logoutStyle = "-fx-background-color: rgba(255,255,255,0.15); -fx-text-fill: white; -fx-cursor: hand; -fx-background-radius: 8; -fx-alignment: center-left;";
         btnLogout.setStyle(logoutStyle);
         btnLogout.setOnMouseEntered(e -> btnLogout.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-cursor: hand; -fx-background-radius: 8; -fx-font-weight: bold; -fx-alignment: center-left;"));
@@ -222,7 +223,7 @@ public class MainFrame extends JFrame {
         header.setPrefWidth(254);
         header.setMinHeight(40);
         header.setMaxWidth(Double.MAX_VALUE);
-        header.setFont(Font.font("Inter", FontWeight.BOLD, 12));
+        header.setFont(Font.font("Inter", javafx.scene.text.FontWeight.BOLD, 12));
         String headerNormal = "-fx-background-color: " + GROUP_HEADER_COLOR + "; " +
                 "-fx-text-fill: rgba(255,255,255,0.85); -fx-cursor: hand; " +
                 "-fx-background-radius: 8; -fx-alignment: center-left; -fx-padding: 0 0 0 12;";
@@ -268,14 +269,14 @@ public class MainFrame extends JFrame {
             accountView        = new AccountView();
             changePasswordView = new ChangePasswordView(loggedInNhanVien);
 
-            // Callback: từ màn sơ đồ phòng → chuyển sang đặt phòng
-            try {
+            // --- Cài đặt callback từ roomView ---
+            if (roomView != null) {
                 roomView.setOnBookingRequest(p -> {
-                    try { showCard("Booking"); bookingView.preSelectRoom(p); }
-                    catch (Exception e) { e.printStackTrace(); }
+                    showCard("Booking");
+                    if (bookingView != null) {
+                        // Implement pre-select room logic if needed
+                    }
                 });
-            } catch (Throwable t) {
-                System.err.println("WARNING: Failed to set roomView booking request callback.");
             }
 
             // --- Đăng ký views đã hoàn thiện ---
@@ -414,14 +415,14 @@ public class MainFrame extends JFrame {
         alert.setTitle("Xác nhận đăng xuất");
         alert.setHeaderText(null);
         alert.showAndWait().ifPresent(type -> {
-            if (type == ButtonType.YES) {
-                Platform.runLater(() -> {
-                    Stage stage = new Stage();
+            if (type == javafx.scene.control.ButtonType.YES) {
+                javafx.application.Platform.runLater(() -> {
+                    javafx.stage.Stage stage = new javafx.stage.Stage();
                     LoginFrame login = new LoginFrame();
-                    Scene scene = login.createScene(stage);
+                    javafx.scene.Scene scene = login.createScene(stage);
                     stage.setScene(scene);
                     stage.show();
-                    SwingUtilities.invokeLater(this::dispose);
+                    javax.swing.SwingUtilities.invokeLater(this::dispose);
                 });
             }
         });
@@ -431,10 +432,10 @@ public class MainFrame extends JFrame {
         VBox box = new VBox(16);
         box.setAlignment(Pos.CENTER);
         Label lbl = new Label(title);
-        lbl.setFont(Font.font("Segoe UI", FontWeight.BOLD, 28));
+        lbl.setFont(javafx.scene.text.Font.font("Segoe UI", javafx.scene.text.FontWeight.BOLD, 28));
         lbl.setTextFill(javafx.scene.paint.Color.web("#bdc3c7"));
         Label lbl2 = new Label(subtitle);
-        lbl2.setFont(Font.font("Segoe UI", 16));
+        lbl2.setFont(javafx.scene.text.Font.font("Segoe UI", 16));
         lbl2.setTextFill(javafx.scene.paint.Color.web("#d5d8dc"));
         box.getChildren().addAll(lbl, lbl2);
         StackPane sp = new StackPane(box);
@@ -443,11 +444,11 @@ public class MainFrame extends JFrame {
     }
 
     private void startClockFx() {
-        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss  dd/MM/yyyy");
-        clockTimeline = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
-            if (lblClock != null) lblClock.setText(sdf.format(new Date()));
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("HH:mm:ss  dd/MM/yyyy");
+        clockTimeline = new javafx.animation.Timeline(new javafx.animation.KeyFrame(javafx.util.Duration.seconds(1), e -> {
+            if (lblClock != null) lblClock.setText(sdf.format(new java.util.Date()));
         }));
-        clockTimeline.setCycleCount(Timeline.INDEFINITE);
+        clockTimeline.setCycleCount(javafx.animation.Timeline.INDEFINITE);
         clockTimeline.play();
     }
 }

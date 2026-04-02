@@ -1,5 +1,8 @@
 package gui;
 
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -8,8 +11,7 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
+import javafx.beans.property.SimpleStringProperty;
 
 import connectDB.ConnectDB;
 import dao.PhieuDatPhongDAO;
@@ -17,6 +19,7 @@ import entity.PhieuDatPhong;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * ================================================================
@@ -91,27 +94,27 @@ public class CheckInView {
         tableView.setPlaceholder(new Label("Không có phiếu đặt phòng nào đang chờ check-in."));
 
         TableColumn<PhieuDatPhong, String> colMa = new TableColumn<>("Mã Phiếu");
-        colMa.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(d.getValue().getMaDatPhong()));
+        colMa.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getMaDatPhong()));
 
         TableColumn<PhieuDatPhong, String> colKhach = new TableColumn<>("Khách Hàng");
-        colKhach.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(
+        colKhach.setCellValueFactory(d -> new SimpleStringProperty(
                 d.getValue().getKhachHang() != null ? d.getValue().getKhachHang().getTenKhachHang() : ""));
 
         TableColumn<PhieuDatPhong, String> colPhong = new TableColumn<>("Phòng");
-        colPhong.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(d.getValue().getMaPhong()));
+        colPhong.setCellValueFactory(d -> new SimpleStringProperty(""));
 
         TableColumn<PhieuDatPhong, String> colNgayNhan = new TableColumn<>("Ngày Nhận Phòng");
-        colNgayNhan.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(
+        colNgayNhan.setCellValueFactory(d -> new SimpleStringProperty(
                 d.getValue().getNgayNhanPhong() != null ? d.getValue().getNgayNhanPhong().toString() : ""));
 
         TableColumn<PhieuDatPhong, String> colNgayTra = new TableColumn<>("Ngày Trả Phòng");
-        colNgayTra.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(
+        colNgayTra.setCellValueFactory(d -> new SimpleStringProperty(
                 d.getValue().getNgayTraPhong() != null ? d.getValue().getNgayTraPhong().toString() : ""));
 
         TableColumn<PhieuDatPhong, String> colTT = new TableColumn<>("Trạng Thái");
-        colTT.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(d.getValue().getTrangThai()));
+        colTT.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getTrangThai()));
 
-        tableView.getColumns().addAll(colMa, colKhach, colPhong, colNgayNhan, colNgayTra, colTT);
+        tableView.getColumns().addAll(colMa, colKhach, colNgayNhan, colNgayTra, colTT);
 
         // --- Nút hành động ---
         HBox actionBar = new HBox(12);
@@ -132,15 +135,26 @@ public class CheckInView {
      *       Gợi ý: Dùng PhieuDatPhongDAO.getAllPhieuDatPhong() rồi lọc theo trạng thái.
      */
     public void loadData() {
-        try {
-            if (ConnectDB.getConnection() == null) return;
-            PhieuDatPhongDAO dao = new PhieuDatPhongDAO();
-            List<PhieuDatPhong> all = dao.getAllPhieuDatPhong();
-            // TODO: Lọc chỉ lấy phiếu có trạng thái "Đã xác nhận" hoặc "Chờ xác nhận"
-            dataList.setAll(all != null ? all : new ArrayList<>());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        Task<List<PhieuDatPhong>> task = new Task<List<PhieuDatPhong>>() {
+            @Override
+            protected List<PhieuDatPhong> call() throws Exception {
+                PhieuDatPhongDAO dao = new PhieuDatPhongDAO();
+                List<PhieuDatPhong> all = dao.getAllPhieuDatPhong();
+                if (all == null) return new ArrayList<>();
+                // Lọc các phiếu chưa nhận phòng (Status NOT 'DaNhanPhong', 'DaThanhToan', 'DaHuy')
+                return all.stream()
+                    .filter(p -> p.getTrangThai() != null 
+                             && !p.getTrangThai().contains("DaNhanPhong") 
+                             && !p.getTrangThai().contains("DaThanhToan") 
+                             && !p.getTrangThai().contains("DaHuy"))
+                    .collect(Collectors.toList());
+            }
+        };
+        task.setOnSucceeded(e -> dataList.setAll(task.getValue()));
+        task.setOnFailed(e -> {
+            e.getSource().getException().printStackTrace();
+        });
+        new Thread(task).start();
     }
 
     /**
@@ -186,8 +200,13 @@ public class CheckInView {
         confirm.setHeaderText(null);
         confirm.showAndWait().ifPresent(type -> {
             if (type == ButtonType.YES) {
-                // TODO: Implement logic check-in ở đây
-                showAlert(Alert.AlertType.INFORMATION, "Thông báo", "Chức năng check-in đang được phát triển.");
+                boolean ok = new PhieuDatPhongDAO().checkIn(selected.getMaDatPhong());
+                if (ok) {
+                    showAlert(Alert.AlertType.INFORMATION, "Thành công", "Khách đã nhận phòng thành công!");
+                    loadData();
+                } else {
+                    showAlert(Alert.AlertType.ERROR, "Thất bại", "Lỗi khi cập nhật trạng thái nhận phòng.");
+                }
             }
         });
     }

@@ -170,4 +170,63 @@ public class PhieuDatPhongDAO {
             try { if (con != null) con.setAutoCommit(true); } catch (SQLException e) { e.printStackTrace(); }
         }
     }
+    public boolean huyPhieu(String maPhieu) {
+        Connection con = ConnectDB.getConnection();
+        try {
+            con.setAutoCommit(false);
+            
+            // 1. Lấy danh sách phòng trong phiếu
+            List<entity.ChiTietPhieuDat> dsCT = new dao.ChiTietPhieuDatDAO().getDSChiTietByMaPhieu(maPhieu);
+            
+            // 2. Cập nhật trạng thái các phòng về "Trống"
+            PreparedStatement stmtPhong = con.prepareStatement("UPDATE Phong SET trangThai = N'Trống' WHERE maPhong = ?");
+            for (entity.ChiTietPhieuDat ct : dsCT) {
+                stmtPhong.setString(1, ct.getPhong().getMaPhong());
+                stmtPhong.executeUpdate();
+            }
+            
+            // 3. Cập nhật trạng thái phiếu về "DaHuy"
+            PreparedStatement stmtPhieu = con.prepareStatement("UPDATE PhieuDatPhong SET trangThai = N'DaHuy' WHERE maDatPhong = ?");
+            stmtPhieu.setString(1, maPhieu);
+            stmtPhieu.executeUpdate();
+            
+            con.commit();
+            return true;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            try { con.rollback(); } catch (SQLException ex) {}
+            return false;
+        } finally {
+            try { con.setAutoCommit(true); } catch (SQLException e) {}
+        }
+    }
+
+    public boolean checkIn(String maPhieu) {
+        Connection con = ConnectDB.getConnection();
+        try {
+            con.setAutoCommit(false);
+            
+            // 1. Cập nhật phiếu sang DaNhanPhong
+            PreparedStatement stmtPhieu = con.prepareStatement("UPDATE PhieuDatPhong SET trangThai = N'DaNhanPhong' WHERE maDatPhong = ?");
+            stmtPhieu.setString(1, maPhieu);
+            stmtPhieu.executeUpdate();
+            
+            // 2. Lấy danh sách phòng và chuyển sang "Đang ở"
+            List<entity.ChiTietPhieuDat> dsCT = new dao.ChiTietPhieuDatDAO().getDSChiTietByMaPhieu(maPhieu);
+            PreparedStatement stmtPhong = con.prepareStatement("UPDATE Phong SET trangThai = N'Đang ở' WHERE maPhong = ?");
+            for (entity.ChiTietPhieuDat ct : dsCT) {
+                stmtPhong.setString(1, ct.getPhong().getMaPhong());
+                stmtPhong.executeUpdate();
+            }
+            
+            con.commit();
+            return true;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            try { con.rollback(); } catch (SQLException ex) {}
+            return false;
+        } finally {
+            try { con.setAutoCommit(true); } catch (SQLException e) {}
+        }
+    }
 }
