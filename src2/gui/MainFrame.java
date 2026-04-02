@@ -147,28 +147,31 @@ public class MainFrame extends JFrame {
         // 🏠 Trang chủ / Tổng quan
         menu.getChildren().add(createMenuButton("🏠  Tổng quan", "Dashboard"));
 
-        // 🛎 Tiếp tân - Chức năng chính: Sơ đồ, Đặt phòng, Trả phòng
-        menu.getChildren().add(createGroupSection("🛎  LỄ TÂN", true,
-                new String[]{"Sơ đồ phòng",        "Room"},
-                new String[]{"Đặt phòng mới",      "Booking"},
-                new String[]{"Trả phòng",           "Checkout"},
-                new String[]{"Danh sách đặt phòng", "BookingList"},
-                new String[]{"Check-in",            "CheckIn"}));
+        // 📅 Quản lý đặt phòng
+        menu.getChildren().add(createGroupSection("📅  QUẢN LÝ ĐẶT PHÒNG", true,
+                new String[]{"Đặt phòng",          "Booking"},
+                new String[]{"Danh sách đặt phòng","BookingList"},
+                new String[]{"Check-in",            "CheckIn"},
+                new String[]{"Check-out",           "Checkout"}));
 
-        // 🛏 Quản lý khách sạn & Dịch vụ
-        menu.getChildren().add(createGroupSection("🛏  QUẢN LÝ", false,
-                new String[]{"Danh mục phòng",      "RoomMgmt"},
-                new String[]{"Quản lý dịch vụ",     "Service"},
-                new String[]{"Quản lý khách hàng",   "Customer"},
-                new String[]{"Bảng giá niêm yết",    "Pricing"}));
+        // 🛏 Quản lý khách sạn
+        menu.getChildren().add(createGroupSection("🛏  QUẢN LÝ KHÁCH SẠN", false,
+                new String[]{"Phòng",      "Room"},
+                new String[]{"Loại phòng", "RoomMgmt"},
+                new String[]{"Dịch vụ",   "Service"},
+                new String[]{"Bảng giá",  "Pricing"}));
 
-        // 💰 Tài chính & Hóa đơn
-        menu.getChildren().add(createGroupSection("💰  TÀI CHÍNH", false,
+        // 👥 Khách hàng
+        menu.getChildren().add(createGroupSection("👥  KHÁCH HÀNG", false,
+                new String[]{"Khách hàng", "Customer"}));
+
+        // 💰 Thanh toán
+        menu.getChildren().add(createGroupSection("💰  THANH TOÁN", false,
                 new String[]{"Thanh toán", "Payment"},
                 new String[]{"Hóa đơn",   "Invoice"}));
 
-        // 📊 Thống kê & Báo cáo
-        menu.getChildren().add(createGroupSection("📊  THỐNG KÊ", false,
+        // 📊 Báo cáo
+        menu.getChildren().add(createGroupSection("📊  BÁO CÁO", false,
                 new String[]{"Thống kê doanh thu",   "RevenueStats"},
                 new String[]{"Thống kê phòng",       "RoomStats"},
                 new String[]{"Thống kê khách hàng",  "CustomerStats"}));
