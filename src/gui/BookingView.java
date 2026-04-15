@@ -19,12 +19,12 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import dao.BangGiaDetailDAO;
 import dao.BangGiaHeaderDAO;
-import dao.ChiTietBangGiaDAO;
 import dao.PhieuDatPhongDAO;
 import dao.PhongDAO;
+import entity.BangGiaDetail;
 import entity.BangGiaHeader;
-import entity.ChiTietBangGia;
 import entity.ChiTietPhieuDat;
 import entity.KhachHang;
 import entity.NhanVien;
@@ -69,7 +69,7 @@ public class BookingView {
     private final KhachHangService khService = new KhachHangService();
     private final PhieuDatPhongDAO pdpDAO = new PhieuDatPhongDAO();
     private final BangGiaHeaderDAO bangGiaHeaderDAO = new BangGiaHeaderDAO();
-    private final ChiTietBangGiaDAO chiTietBangGiaDAO = new ChiTietBangGiaDAO();
+    private final BangGiaDetailDAO bangGiaDetailDAO = new BangGiaDetailDAO();
 
     // Auto-pricing state
     private BangGiaHeader bangGiaHienTai = null;
@@ -679,7 +679,7 @@ public class BookingView {
         if (bg == null) return p.getGiaPhong(); // Fallback cuối cùng là giá trong bảng Phòng nếu DB trống rỗng
 
         // 2. Lấy chi tiết đơn giá ngày
-        ChiTietBangGia ct = chiTietBangGiaDAO.getById(bg.getMaBangGia(), p.getMaLoai());
+        BangGiaDetail ct = bangGiaDetailDAO.getDetailByBangGiaAndLoai(bg.getMaBangGia(), p.getMaLoai());
         if (ct == null) return p.getGiaPhong();
 
         // Ưu tiên giá Lễ -> Cuối tuần -> Ngày thường
@@ -709,7 +709,7 @@ public class BookingView {
         LocalDateTime end = tra.atTime(hOut, mOut);
 
         // Sử dụng bộ máy tính giá thông minh
-        double price = chiTietBangGiaDAO.calculateStayPrice(p, start, end);
+        double price = bangGiaDetailDAO.calculateStayPrice(p.getMaLoai(), start, end);
 
         // NẾU GIÁ BẰNG 0 (do chưa cấu hình bảng giá), LẤY GIÁ MẶC ĐỊNH TRONG BẢNG PHÒNG
         if (price <= 0) {

@@ -13,18 +13,15 @@ public class BangGiaHeader {
 
     private String maBangGia;
     private String tenBangGia;
-    private String loaiBangGia;
-    private String loaiNgay;
     private LocalDate ngayBatDau;
     private LocalDate ngayKetThuc;
-    private boolean trangThai;
+    private String loaiNgay;
+    private String trangThai;
     private double phanTramTang;
 
     public BangGiaHeader() {
-        this.trangThai = true;
+        this.trangThai = TRANG_THAI_DANG_HOAT_DONG;
         this.phanTramTang = 0;
-        this.loaiBangGia = "";
-        this.loaiNgay = LOAI_NGAY_THUONG;
     }
 
     public BangGiaHeader(String maBangGia) {
@@ -34,28 +31,16 @@ public class BangGiaHeader {
 
     public BangGiaHeader(String maBangGia, String tenBangGia, LocalDate ngayBatDau, LocalDate ngayKetThuc,
             String loaiNgay) {
-        this(maBangGia, tenBangGia, "", loaiNgay, ngayBatDau, ngayKetThuc, true, 0);
+        this(maBangGia, tenBangGia, ngayBatDau, ngayKetThuc, loaiNgay, TRANG_THAI_DANG_HOAT_DONG, 0);
     }
 
     public BangGiaHeader(String maBangGia, String tenBangGia, LocalDate ngayBatDau, LocalDate ngayKetThuc,
             String loaiNgay, String trangThai, double phanTramTang) {
-        this(maBangGia, tenBangGia, "", loaiNgay, ngayBatDau, ngayKetThuc,
-                TRANG_THAI_DANG_HOAT_DONG.equalsIgnoreCase(trangThai), phanTramTang);
-    }
-
-    public BangGiaHeader(String maBangGia, String tenBangGia, String loaiBangGia, String loaiNgay,
-            LocalDate ngayBatDau, LocalDate ngayKetThuc, boolean trangThai) {
-        this(maBangGia, tenBangGia, loaiBangGia, loaiNgay, ngayBatDau, ngayKetThuc, trangThai, 0);
-    }
-
-    public BangGiaHeader(String maBangGia, String tenBangGia, String loaiBangGia, String loaiNgay,
-            LocalDate ngayBatDau, LocalDate ngayKetThuc, boolean trangThai, double phanTramTang) {
         this.maBangGia = maBangGia;
         this.tenBangGia = tenBangGia;
-        this.loaiBangGia = loaiBangGia;
-        this.loaiNgay = loaiNgay;
         this.ngayBatDau = ngayBatDau;
         this.ngayKetThuc = ngayKetThuc;
+        this.loaiNgay = loaiNgay;
         this.trangThai = trangThai;
         this.phanTramTang = phanTramTang;
     }
@@ -76,22 +61,6 @@ public class BangGiaHeader {
         this.tenBangGia = tenBangGia;
     }
 
-    public String getLoaiBangGia() {
-        return loaiBangGia;
-    }
-
-    public void setLoaiBangGia(String loaiBangGia) {
-        this.loaiBangGia = loaiBangGia;
-    }
-
-    public String getLoaiNgay() {
-        return loaiNgay;
-    }
-
-    public void setLoaiNgay(String loaiNgay) {
-        this.loaiNgay = loaiNgay;
-    }
-
     public LocalDate getNgayBatDau() {
         return ngayBatDau;
     }
@@ -108,25 +77,20 @@ public class BangGiaHeader {
         this.ngayKetThuc = ngayKetThuc;
     }
 
+    public String getLoaiNgay() {
+        return loaiNgay;
+    }
+
+    public void setLoaiNgay(String loaiNgay) {
+        this.loaiNgay = loaiNgay;
+    }
+
     public String getTrangThai() {
-        return trangThai ? TRANG_THAI_DANG_HOAT_DONG : TRANG_THAI_KHONG_HOAT_DONG;
-    }
-
-    public boolean isTrangThai() {
         return trangThai;
-    }
-
-    public boolean getTrangThaiBoolean() {
-        return trangThai;
-    }
-
-    public void setTrangThai(boolean trangThai) {
-        this.trangThai = trangThai;
     }
 
     public void setTrangThai(String trangThai) {
-        this.trangThai = trangThai != null
-                && !TRANG_THAI_KHONG_HOAT_DONG.equalsIgnoreCase(trangThai.trim());
+        this.trangThai = trangThai;
     }
 
     public double getPhanTramTang() {
@@ -138,7 +102,7 @@ public class BangGiaHeader {
     }
 
     public boolean isDangHoatDong() {
-        return trangThai;
+        return TRANG_THAI_DANG_HOAT_DONG.equalsIgnoreCase(trangThai);
     }
 
     public boolean isDacBiet() {
@@ -152,12 +116,11 @@ public class BangGiaHeader {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) {
+        if (this == obj)
             return true;
-        }
-        if (!(obj instanceof BangGiaHeader other)) {
+        if (!(obj instanceof BangGiaHeader))
             return false;
-        }
+        BangGiaHeader other = (BangGiaHeader) obj;
         return Objects.equals(maBangGia, other.maBangGia);
     }
 }

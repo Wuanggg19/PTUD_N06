@@ -61,6 +61,7 @@ public class MainFrame extends JFrame {
     private CheckInView checkInView;
     private ServiceView serviceView;
     private PricingView pricingView;
+    private PaymentView paymentView;
     private InvoiceView invoiceView;
     private RevenueStatsView revenueStatsView;
     private RoomStatsView roomStatsView;
@@ -144,6 +145,7 @@ public class MainFrame extends JFrame {
         menu.getChildren().add(createGroupSection("KHACH HANG", false,
                 new String[]{"Khach hang", "Customer"}));
         menu.getChildren().add(createGroupSection("INVOICE", false,
+                new String[]{"Thanh toan", "Payment"},
                 new String[]{"Hoa don", "Invoice"}));
         menu.getChildren().add(createGroupSection("BAO CAO", false,
                 new String[]{"Thong ke doanh thu", "RevenueStats"},
@@ -307,6 +309,12 @@ public class MainFrame extends JFrame {
                 }
                 yield pricingView.createView();
             }
+            case "Payment" -> {
+                if (paymentView == null) {
+                    paymentView = new PaymentView();
+                }
+                yield paymentView.createView();
+            }
             case "Invoice" -> {
                 if (invoiceView == null) {
                     invoiceView = new InvoiceView();
@@ -387,6 +395,9 @@ public class MainFrame extends JFrame {
                 }
                 case "Pricing" -> {
                     if (pricingView != null) pricingView.loadData();
+                }
+                case "Payment" -> {
+                    if (paymentView != null) paymentView.loadData();
                 }
                 case "Invoice" -> {
                     if (invoiceView != null) invoiceView.loadData();

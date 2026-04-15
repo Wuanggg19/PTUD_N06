@@ -10,16 +10,3 @@ dist/
 target/
 node_modules/
 bin/
-out/
-production/
-.gradle/
-.mvn/
-
-# IntelliJ IDEA
-.idea/
-*.iml
-
-# OS / editor noise
-.DS_Store
-Thumbs.db
-*.log

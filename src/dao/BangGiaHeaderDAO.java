@@ -4,27 +4,22 @@ import connectDB.ConnectDB;
 import entity.BangGiaHeader;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.text.Normalizer;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 public class BangGiaHeaderDAO {
 
     public List<BangGiaHeader> getAllBangGiaHeader() {
         List<BangGiaHeader> ds = new ArrayList<>();
-        String sql = """
-                SELECT maBangGia, tenBangGia, loaiBangGia, loaiNgay, ngayBatDau, ngayKetThuc, trangThai
-                FROM BangGiaHeader
-                ORDER BY maBangGia
-                """;
+        String sql = "SELECT * FROM BangGiaHeader ORDER BY maBangGia";
         try (Connection con = ConnectDB.getConnection();
              PreparedStatement stmt = con.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
@@ -32,8 +27,7 @@ public class BangGiaHeaderDAO {
                 ds.add(mapHeader(rs));
             }
         } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Không thể tải dữ liệu bảng giá từ BangGiaHeader.", e);
+            throw new RuntimeException("Khong the tai du lieu BangGiaHeader.", e);
         }
         return ds;
     }
@@ -44,22 +38,31 @@ public class BangGiaHeaderDAO {
 
     public List<BangGiaHeader> getDanhSachBangGiaTheoNgay(LocalDate ngay) {
         List<BangGiaHeader> ds = new ArrayList<>();
-        String sql = """
-                SELECT maBangGia, tenBangGia, loaiBangGia, loaiNgay, ngayBatDau, ngayKetThuc, trangThai
-                FROM BangGiaHeader
-                WHERE ngayBatDau <= ?
-                  AND (ngayKetThuc IS NULL OR ngayKetThuc >= ?)
-                  AND trangThai = ?
-                ORDER BY ngayBatDau DESC, maBangGia
-                """;
-        try (Connection con = ConnectDB.getConnection();
-             PreparedStatement stmt = con.prepareStatement(sql)) {
-            stmt.setDate(1, Date.valueOf(ngay));
-            stmt.setDate(2, Date.valueOf(ngay));
-            stmt.setBoolean(3, true);
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    ds.add(mapHeader(rs));
+        try (Connection con = ConnectDB.getConnection()) {
+            boolean hasTrangThai = hasColumn(con, "BangGiaHeader", "trangThai");
+            String sql = hasTrangThai
+                    ? """
+                        SELECT *
+                        FROM BangGiaHeader
+                        WHERE ? BETWEEN ngayBatDau AND ngayKetThuc
+                          AND trangThai = ?
+                        ORDER BY maBangGia
+                    """
+                    : """
+                        SELECT *
+                        FROM BangGiaHeader
+                        WHERE ? BETWEEN ngayBatDau AND ngayKetThuc
+                        ORDER BY maBangGia
+                    """;
+            try (PreparedStatement stmt = con.prepareStatement(sql)) {
+                stmt.setDate(1, Date.valueOf(ngay));
+                if (hasTrangThai) {
+                    stmt.setString(2, BangGiaHeader.TRANG_THAI_DANG_HOAT_DONG);
+                }
+                try (ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) {
+                        ds.add(mapHeader(rs));
+                    }
                 }
             }
         } catch (Exception e) {
@@ -69,11 +72,7 @@ public class BangGiaHeaderDAO {
     }
 
     public BangGiaHeader getBangGiaByMa(String ma) {
-        String sql = """
-                SELECT maBangGia, tenBangGia, loaiBangGia, loaiNgay, ngayBatDau, ngayKetThuc, trangThai
-                FROM BangGiaHeader
-                WHERE maBangGia = ?
-                """;
+        String sql = "SELECT * FROM BangGiaHeader WHERE maBangGia = ?";
         try (Connection con = ConnectDB.getConnection();
              PreparedStatement stmt = con.prepareStatement(sql)) {
             stmt.setString(1, ma);
@@ -90,12 +89,18 @@ public class BangGiaHeaderDAO {
 
     public boolean create(BangGiaHeader bg) {
         String sql = """
-                INSERT INTO BangGiaHeader(maBangGia, tenBangGia, loaiBangGia, loaiNgay, ngayBatDau, ngayKetThuc, trangThai)
+                INSERT INTO BangGiaHeader(maBangGia, tenBangGia, ngayBatDau, ngayKetThuc, loaiNgay, trangThai, phanTramTang)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 """;
         try (Connection con = ConnectDB.getConnection();
              PreparedStatement stmt = con.prepareStatement(sql)) {
-            bindHeader(stmt, bg, false);
+            stmt.setString(1, bg.getMaBangGia());
+            stmt.setString(2, bg.getTenBangGia());
+            stmt.setDate(3, Date.valueOf(bg.getNgayBatDau()));
+            stmt.setDate(4, Date.valueOf(bg.getNgayKetThuc()));
+            stmt.setString(5, normalizeLoaiNgay(bg.getLoaiNgay()));
+            stmt.setString(6, normalizeTrangThai(bg.getTrangThai()));
+            stmt.setDouble(7, bg.getPhanTramTang());
             return stmt.executeUpdate() > 0;
         } catch (Exception e) {
             e.printStackTrace();
@@ -106,12 +111,18 @@ public class BangGiaHeaderDAO {
     public boolean update(BangGiaHeader bg) {
         String sql = """
                 UPDATE BangGiaHeader
-                SET tenBangGia = ?, loaiBangGia = ?, loaiNgay = ?, ngayBatDau = ?, ngayKetThuc = ?, trangThai = ?
-                WHERE maBangGia = ?
+                SET tenBangGia=?, ngayBatDau=?, ngayKetThuc=?, loaiNgay=?, trangThai=?, phanTramTang=?
+                WHERE maBangGia=?
                 """;
         try (Connection con = ConnectDB.getConnection();
              PreparedStatement stmt = con.prepareStatement(sql)) {
-            bindHeader(stmt, bg, true);
+            stmt.setString(1, bg.getTenBangGia());
+            stmt.setDate(2, Date.valueOf(bg.getNgayBatDau()));
+            stmt.setDate(3, Date.valueOf(bg.getNgayKetThuc()));
+            stmt.setString(4, normalizeLoaiNgay(bg.getLoaiNgay()));
+            stmt.setString(5, normalizeTrangThai(bg.getTrangThai()));
+            stmt.setDouble(6, bg.getPhanTramTang());
+            stmt.setString(7, bg.getMaBangGia());
             return stmt.executeUpdate() > 0;
         } catch (Exception e) {
             e.printStackTrace();
@@ -120,7 +131,7 @@ public class BangGiaHeaderDAO {
     }
 
     public boolean delete(String maBangGia) {
-        String sql = "DELETE FROM BangGiaHeader WHERE maBangGia = ?";
+        String sql = "DELETE FROM BangGiaHeader WHERE maBangGia=?";
         try (Connection con = ConnectDB.getConnection();
              PreparedStatement stmt = con.prepareStatement(sql)) {
             stmt.setString(1, maBangGia);
@@ -132,24 +143,36 @@ public class BangGiaHeaderDAO {
     }
 
     public BangGiaHeader getBangGiaDangHoatDongTheoLoai(String loaiNgay, LocalDate ngay) {
-        String sql = """
-                SELECT TOP 1 maBangGia, tenBangGia, loaiBangGia, loaiNgay, ngayBatDau, ngayKetThuc, trangThai
-                FROM BangGiaHeader
-                WHERE loaiNgay = ?
-                  AND trangThai = ?
-                  AND ngayBatDau <= ?
-                  AND (ngayKetThuc IS NULL OR ngayKetThuc >= ?)
-                ORDER BY ngayBatDau DESC, maBangGia
-                """;
-        try (Connection con = ConnectDB.getConnection();
-             PreparedStatement stmt = con.prepareStatement(sql)) {
-            stmt.setString(1, normalizeLoaiNgay(loaiNgay));
-            stmt.setBoolean(2, true);
-            stmt.setDate(3, Date.valueOf(ngay));
-            stmt.setDate(4, Date.valueOf(ngay));
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return mapHeader(rs);
+        try (Connection con = ConnectDB.getConnection()) {
+            boolean hasTrangThai = hasColumn(con, "BangGiaHeader", "trangThai");
+            String sql = hasTrangThai
+                    ? """
+                        SELECT TOP 1 *
+                        FROM BangGiaHeader
+                        WHERE loaiNgay = ?
+                          AND trangThai = ?
+                          AND ? BETWEEN ngayBatDau AND ngayKetThuc
+                        ORDER BY ngayBatDau DESC, maBangGia
+                    """
+                    : """
+                        SELECT TOP 1 *
+                        FROM BangGiaHeader
+                        WHERE loaiNgay = ?
+                          AND ? BETWEEN ngayBatDau AND ngayKetThuc
+                        ORDER BY ngayBatDau DESC, maBangGia
+                    """;
+            try (PreparedStatement stmt = con.prepareStatement(sql)) {
+                stmt.setString(1, normalizeLoaiNgay(loaiNgay));
+                if (hasTrangThai) {
+                    stmt.setString(2, BangGiaHeader.TRANG_THAI_DANG_HOAT_DONG);
+                    stmt.setDate(3, Date.valueOf(ngay));
+                } else {
+                    stmt.setDate(2, Date.valueOf(ngay));
+                }
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        return mapHeader(rs);
+                    }
                 }
             }
         } catch (Exception e) {
@@ -190,37 +213,22 @@ public class BangGiaHeaderDAO {
         return d == DayOfWeek.SATURDAY || d == DayOfWeek.SUNDAY;
     }
 
-    private void bindHeader(PreparedStatement stmt, BangGiaHeader bg, boolean update) throws SQLException {
-        int index = 1;
-        if (!update) {
-            stmt.setString(index++, bg.getMaBangGia());
-        }
-        stmt.setString(index++, bg.getTenBangGia());
-        stmt.setString(index++, normalizeLoaiBangGia(bg.getLoaiBangGia()));
-        stmt.setString(index++, normalizeLoaiNgay(bg.getLoaiNgay()));
-        stmt.setDate(index++, Date.valueOf(bg.getNgayBatDau()));
-        if (bg.getNgayKetThuc() != null) {
-            stmt.setDate(index++, Date.valueOf(bg.getNgayKetThuc()));
-        } else {
-            stmt.setDate(index++, null);
-        }
-        stmt.setBoolean(index++, bg.isDangHoatDong());
-        if (update) {
-            stmt.setString(index, bg.getMaBangGia());
-        }
-    }
-
     private BangGiaHeader mapHeader(ResultSet rs) throws SQLException {
         return new BangGiaHeader(
                 rs.getString("maBangGia"),
                 rs.getString("tenBangGia"),
-                getStringOrDefault(rs, "loaiBangGia", ""),
-                normalizeLoaiNgay(rs.getString("loaiNgay")),
                 rs.getDate("ngayBatDau").toLocalDate(),
-                rs.getDate("ngayKetThuc") != null ? rs.getDate("ngayKetThuc").toLocalDate() : null,
-                getBooleanOrDefault(rs, "trangThai", true),
-                0
-        );
+                rs.getDate("ngayKetThuc").toLocalDate(),
+                normalizeLoaiNgay(rs.getString("loaiNgay")),
+                normalizeTrangThai(getStringOrDefault(rs, "trangThai", BangGiaHeader.TRANG_THAI_DANG_HOAT_DONG)),
+                getDoubleOrDefault(rs, "phanTramTang", 0));
+    }
+
+    private boolean hasColumn(Connection con, String tableName, String columnName) throws SQLException {
+        DatabaseMetaData metaData = con.getMetaData();
+        try (ResultSet rs = metaData.getColumns(null, null, tableName, columnName)) {
+            return rs.next();
+        }
     }
 
     private String getStringOrDefault(ResultSet rs, String columnName, String defaultValue) throws SQLException {
@@ -231,11 +239,11 @@ public class BangGiaHeaderDAO {
         return value == null ? defaultValue : value;
     }
 
-    private boolean getBooleanOrDefault(ResultSet rs, String columnName, boolean defaultValue) throws SQLException {
+    private double getDoubleOrDefault(ResultSet rs, String columnName, double defaultValue) throws SQLException {
         if (!hasColumn(rs, columnName)) {
             return defaultValue;
         }
-        boolean value = rs.getBoolean(columnName);
+        double value = rs.getDouble(columnName);
         return rs.wasNull() ? defaultValue : value;
     }
 
@@ -249,46 +257,35 @@ public class BangGiaHeaderDAO {
         return false;
     }
 
-    public String normalizeLoaiBangGia(String loaiBangGia) {
-        return loaiBangGia == null ? "" : loaiBangGia.trim();
-    }
-
     public String normalizeLoaiNgay(String loaiNgay) {
         if (loaiNgay == null) {
             return BangGiaHeader.LOAI_NGAY_THUONG;
         }
+        String value = loaiNgay.trim().toUpperCase();
 
-        String raw = loaiNgay.trim();
-        String normalized = stripVietnamese(raw).replace(' ', '_');
-        if (normalized.equals("NGAY_THUONG") || normalized.equals("THUONG")) {
+        if (value.equals(BangGiaHeader.LOAI_NGAY_THUONG) || "NGAY THUONG".equals(value)
+                || "NGÀY THƯỜNG".equals(value) || "THUONG".equals(value)) {
             return BangGiaHeader.LOAI_NGAY_THUONG;
         }
-        if (normalized.equals("CUOI_TUAN") || normalized.equals("WEEKEND")) {
+        if (value.equals(BangGiaHeader.LOAI_CUOI_TUAN) || "CUOI TUAN".equals(value)
+                || "CUỐI TUẦN".equals(value) || "WEEKEND".equals(value)) {
             return BangGiaHeader.LOAI_CUOI_TUAN;
         }
-        if (normalized.equals("NGAY_LE") || normalized.equals("LE") || normalized.equals("TET")) {
+        if (value.equals(BangGiaHeader.LOAI_NGAY_LE) || "NGAY LE".equals(value)
+                || "LỄ".equals(value) || "LE".equals(value) || "TET".equals(value) || "TẾT".equals(value)) {
             return BangGiaHeader.LOAI_NGAY_LE;
         }
 
-        return raw.toUpperCase(Locale.ROOT).replace(' ', '_');
+        return BangGiaHeader.LOAI_NGAY_THUONG;
     }
 
     public String normalizeTrangThai(String trangThai) {
         if (trangThai == null || trangThai.isBlank()) {
             return BangGiaHeader.TRANG_THAI_DANG_HOAT_DONG;
         }
-        String normalized = stripVietnamese(trangThai);
-        if (normalized.contains("KHONG")) {
+        if (BangGiaHeader.TRANG_THAI_KHONG_HOAT_DONG.equalsIgnoreCase(trangThai.trim())) {
             return BangGiaHeader.TRANG_THAI_KHONG_HOAT_DONG;
         }
         return BangGiaHeader.TRANG_THAI_DANG_HOAT_DONG;
-    }
-
-    private String stripVietnamese(String value) {
-        String normalized = Normalizer.normalize(value, Normalizer.Form.NFD)
-                .replaceAll("\\p{M}", "")
-                .replace('Đ', 'D')
-                .replace('đ', 'd');
-        return normalized.trim().toUpperCase(Locale.ROOT);
     }
 }

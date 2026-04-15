@@ -1,7 +1,7 @@
 package util;
 
+import dao.BangGiaDetailDAO;
 import dao.ChiTietHoaDonDAO;
-import dao.ChiTietBangGiaDAO;
 import entity.ChiTietHoaDon;
 import entity.ChiTietPhieuDat;
 import entity.Phong;
@@ -14,15 +14,15 @@ import java.util.Collections;
 import java.util.List;
 
 public class PricingService {
-    private final ChiTietBangGiaDAO chiTietBangGiaDAO;
+    private final BangGiaDetailDAO bangGiaDetailDAO;
     private final ChiTietHoaDonDAO chiTietHoaDonDAO;
 
     public PricingService() {
-        this(new ChiTietBangGiaDAO(), new ChiTietHoaDonDAO());
+        this(new BangGiaDetailDAO(), new ChiTietHoaDonDAO());
     }
 
-    public PricingService(ChiTietBangGiaDAO chiTietBangGiaDAO, ChiTietHoaDonDAO chiTietHoaDonDAO) {
-        this.chiTietBangGiaDAO = chiTietBangGiaDAO;
+    public PricingService(BangGiaDetailDAO bangGiaDetailDAO, ChiTietHoaDonDAO chiTietHoaDonDAO) {
+        this.bangGiaDetailDAO = bangGiaDetailDAO;
         this.chiTietHoaDonDAO = chiTietHoaDonDAO;
     }
 
@@ -30,7 +30,7 @@ public class PricingService {
         if (phong == null || ngay == null) {
             return 0;
         }
-        double price = chiTietBangGiaDAO.getGiaTheoNgay(phong, ngay);
+        double price = bangGiaDetailDAO.getGiaTheoNgay(phong, ngay);
         // Nếu không có bảng giá cho ngày này, lấy giá gốc của phòng
         return price > 0 ? price : phong.getGiaPhong();
     }
