@@ -21,7 +21,7 @@
             "request": "launch",
             "mainClass": "${file}",
             "console": "internalConsole",
-            "vmArgs": "--module-path \"${workspaceFolder}/libary/javafx-sdk-26/lib\" --add-modules javafx.controls,javafx.fxml,javafx.graphics,javafx.base,javafx.swing --enable-native-access=javafx.graphics"
+            "vmArgs": "--module-path \"${workspaceFolder}/libary/javafx-sdk-21.0.2/lib\" --add-modules javafx.controls,javafx.fxml,javafx.graphics,javafx.base,javafx.swing --enable-native-access=javafx.graphics"
         },
         {
             "type": "java",
@@ -30,7 +30,7 @@
             "mainClass": "gui.StartUpGui",
             "projectName": "PhanMemQuanLyKhachSan",
             "console": "internalConsole",
-            "vmArgs": "--module-path \"${workspaceFolder}/libary/javafx-sdk-26/lib\" --add-modules javafx.controls,javafx.fxml,javafx.graphics,javafx.base,javafx.swing"
+            "vmArgs": "--module-path \"${workspaceFolder}/libary/javafx-sdk-21.0.2/lib\" --add-modules javafx.controls,javafx.fxml,javafx.graphics,javafx.base,javafx.swing"
         }
     ]
 }

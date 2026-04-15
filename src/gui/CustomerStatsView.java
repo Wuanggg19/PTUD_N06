@@ -91,10 +91,10 @@ public class CustomerStatsView {
         colTen.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(d.getValue().getTenKhachHang()));
         TableColumn<KhachHang, String> colSDT = new TableColumn<>("Số Điện Thoại");
         colSDT.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(d.getValue().getSoDienThoai()));
-        TableColumn<KhachHang, String> colEmail = new TableColumn<>("Email");
-        colEmail.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(d.getValue().getEmail()));
+        TableColumn<KhachHang, String> colDiaChi = new TableColumn<>("Địa Chỉ");
+        colDiaChi.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(d.getValue().getDiaChi()));
 
-        tableTop.getColumns().addAll(colMa, colTen, colSDT, colEmail);
+        tableTop.getColumns().addAll(colMa, colTen, colSDT, colDiaChi);
 
         Button btnRefresh = new Button("🔄  Làm mới");
         btnRefresh.setStyle("-fx-background-color: #7f8c8d; -fx-text-fill: white; -fx-background-radius: 8; -fx-cursor: hand; -fx-font-weight: bold;");

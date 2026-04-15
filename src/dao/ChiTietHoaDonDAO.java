@@ -13,6 +13,9 @@ import entity.DichVu;
 import entity.HoaDon;
 
 public class ChiTietHoaDonDAO {
+    public List<ChiTietHoaDon> getByMaHoaDon(String maHD) {
+        return getDSChiTietByMaHD(maHD);
+    }
 
     public List<ChiTietHoaDon> getDSChiTietByMaHD(String maHD) {
         List<ChiTietHoaDon> ds = new ArrayList<>();
@@ -35,6 +38,40 @@ public class ChiTietHoaDonDAO {
             e.printStackTrace();
         }
         return ds;
+    }
+
+    public boolean addOrUpdateService(ChiTietHoaDon ct) {
+        String sqlCheck = "SELECT soLuong FROM ChiTietHoaDon WHERE maHoaDon = ? AND maDichVu = ?";
+        String sqlUpdate = "UPDATE ChiTietHoaDon SET soLuong = soLuong + ? WHERE maHoaDon = ? AND maDichVu = ?";
+        String sqlInsert = "INSERT INTO ChiTietHoaDon(maHoaDon, maDichVu, soLuong, donGiaLuuTru) VALUES(?, ?, ?, ?)";
+        
+        try (Connection con = ConnectDB.getConnection()) {
+            try (PreparedStatement psCheck = con.prepareStatement(sqlCheck)) {
+                psCheck.setString(1, ct.getHoaDon().getMaHoaDon());
+                psCheck.setString(2, ct.getDichVu().getMaDichVu());
+                ResultSet rs = psCheck.executeQuery();
+                
+                if (rs.next()) {
+                    try (PreparedStatement psUpdate = con.prepareStatement(sqlUpdate)) {
+                        psUpdate.setInt(1, ct.getSoLuong());
+                        psUpdate.setString(2, ct.getHoaDon().getMaHoaDon());
+                        psUpdate.setString(3, ct.getDichVu().getMaDichVu());
+                        return psUpdate.executeUpdate() > 0;
+                    }
+                } else {
+                    try (PreparedStatement psInsert = con.prepareStatement(sqlInsert)) {
+                        psInsert.setString(1, ct.getHoaDon().getMaHoaDon());
+                        psInsert.setString(2, ct.getDichVu().getMaDichVu());
+                        psInsert.setInt(3, ct.getSoLuong());
+                        psInsert.setDouble(4, ct.getDonGiaLuuTru());
+                        return psInsert.executeUpdate() > 0;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
     public boolean create(ChiTietHoaDon ct) {

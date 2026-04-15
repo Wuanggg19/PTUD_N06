@@ -10,3 +10,13 @@ dist/
 target/
 node_modules/
 bin/
+.idea/
+*.iml
+out/
+production/
+.ai/
+.codex-*/
+libary/javafx-sdk-*/
+src/.idea/
+src/.ai/
+src/.codex-*/

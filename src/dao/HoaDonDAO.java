@@ -21,17 +21,83 @@ public class HoaDonDAO {
         List<HoaDon> ds = new ArrayList<>();
         try {
             Connection con = ConnectDB.getConnection();
-            String sql = "SELECT * FROM HoaDon";
+            String sql = "SELECT hd.*, kh.tenKhachHang FROM HoaDon hd " +
+                         "JOIN PhieuDatPhong pdp ON hd.maDatPhong = pdp.maDatPhong " +
+                         "JOIN KhachHang kh ON pdp.maKhachHang = kh.maKhachHang";
             Statement statement = con.createStatement();
             ResultSet rs = statement.executeQuery(sql);
             while (rs.next()) {
+                entity.KhachHang kh = new entity.KhachHang();
+                kh.setTenKhachHang(rs.getString("tenKhachHang"));
+                
+                PhieuDatPhong pdp = new PhieuDatPhong(rs.getString("maDatPhong"));
+                pdp.setKhachHang(kh);
+
                 HoaDon hd = new HoaDon(
                     rs.getString("maHoaDon"),
                     rs.getTimestamp("ngayLap").toLocalDateTime(),
                     rs.getDouble("thue"),
                     rs.getDouble("tongTienPhong"),
                     rs.getDouble("tongTienDichVu"),
-                    new PhieuDatPhong(rs.getString("maDatPhong")),
+                    pdp,
+                    new NhanVien(rs.getString("maNhanVien"))
+                );
+                ds.add(hd);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return ds;
+    }
+
+    public List<HoaDon> filterHoaDon(String keyword, java.time.LocalDate fromDate, java.time.LocalDate toDate) {
+        List<HoaDon> ds = new ArrayList<>();
+        try {
+            Connection con = ConnectDB.getConnection();
+            StringBuilder sql = new StringBuilder(
+                "SELECT hd.*, kh.tenKhachHang FROM HoaDon hd " +
+                "JOIN PhieuDatPhong pdp ON hd.maDatPhong = pdp.maDatPhong " +
+                "JOIN KhachHang kh ON pdp.maKhachHang = kh.maKhachHang WHERE 1=1"
+            );
+            
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                sql.append(" AND (hd.maHoaDon LIKE ? OR kh.tenKhachHang LIKE ?)");
+            }
+            if (fromDate != null) {
+                sql.append(" AND CAST(hd.ngayLap AS DATE) >= ?");
+            }
+            if (toDate != null) {
+                sql.append(" AND CAST(hd.ngayLap AS DATE) <= ?");
+            }
+            
+            PreparedStatement stmt = con.prepareStatement(sql.toString());
+            int paramIdx = 1;
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                stmt.setString(paramIdx++, "%" + keyword + "%");
+                stmt.setString(paramIdx++, "%" + keyword + "%");
+            }
+            if (fromDate != null) {
+                stmt.setDate(paramIdx++, java.sql.Date.valueOf(fromDate));
+            }
+            if (toDate != null) {
+                stmt.setDate(paramIdx++, java.sql.Date.valueOf(toDate));
+            }
+            
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                entity.KhachHang kh = new entity.KhachHang();
+                kh.setTenKhachHang(rs.getString("tenKhachHang"));
+                
+                PhieuDatPhong pdp = new PhieuDatPhong(rs.getString("maDatPhong"));
+                pdp.setKhachHang(kh);
+                
+                HoaDon hd = new HoaDon(
+                    rs.getString("maHoaDon"),
+                    rs.getTimestamp("ngayLap").toLocalDateTime(),
+                    rs.getDouble("thue"),
+                    rs.getDouble("tongTienPhong"),
+                    rs.getDouble("tongTienDichVu"),
+                    pdp,
                     new NhanVien(rs.getString("maNhanVien"))
                 );
                 ds.add(hd);

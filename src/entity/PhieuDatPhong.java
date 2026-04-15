@@ -9,8 +9,13 @@ public class PhieuDatPhong {
     private String trangThai;
     private NhanVien nhanVien;
     private KhachHang khachHang;
+    private LocalDateTime ngayNhan;
+    private LocalDateTime ngayTra;
+    private String dsMaPhong;
+    private int soLuongPhong;
 
-    public PhieuDatPhong() {}
+    public PhieuDatPhong() {
+    }
 
     public PhieuDatPhong(String maDatPhong) {
         this.maDatPhong = maDatPhong;
@@ -25,17 +30,16 @@ public class PhieuDatPhong {
     }
 
     public String getMaDatPhong() { return maDatPhong; }
+
     public void setMaDatPhong(String maDatPhong) {
-        if (!maDatPhong.matches("^DP\\d{3,}$")) {
+        if (maDatPhong == null || !maDatPhong.matches("^DP\\d{3,}$")) {
             throw new IllegalArgumentException("Mã đặt phòng phải bắt đầu bằng DP và theo sau là ít nhất 3 chữ số");
         }
         this.maDatPhong = maDatPhong;
     }
 
     public LocalDateTime getNgayDat() { return ngayDat; }
-    public void setNgayDat(LocalDateTime ngayDat) { 
-        this.ngayDat = ngayDat; 
-    }
+    public void setNgayDat(LocalDateTime ngayDat) { this.ngayDat = ngayDat; }
 
     public String getTrangThai() { return trangThai; }
     public void setTrangThai(String trangThai) { this.trangThai = trangThai; }
@@ -45,6 +49,18 @@ public class PhieuDatPhong {
 
     public KhachHang getKhachHang() { return khachHang; }
     public void setKhachHang(KhachHang khachHang) { this.khachHang = khachHang; }
+
+    public LocalDateTime getNgayNhan() { return ngayNhan; }
+    public void setNgayNhan(LocalDateTime ngayNhan) { this.ngayNhan = ngayNhan; }
+
+    public LocalDateTime getNgayTra() { return ngayTra; }
+    public void setNgayTra(LocalDateTime ngayTra) { this.ngayTra = ngayTra; }
+
+    public String getDsMaPhong() { return dsMaPhong; }
+    public void setDsMaPhong(String dsMaPhong) { this.dsMaPhong = dsMaPhong; }
+
+    public int getSoLuongPhong() { return soLuongPhong; }
+    public void setSoLuongPhong(int soLuongPhong) { this.soLuongPhong = soLuongPhong; }
 
     @Override
     public int hashCode() {

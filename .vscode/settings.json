@@ -1,4 +1,9 @@
 {
     "java.debug.settings.onBuildFailureProceed": true,
-    "terminal.integrated.defaultProfile.windows": "PowerShell"
+    "terminal.integrated.defaultProfile.windows": "PowerShell",
+    "java.project.referencedLibraries": [
+        "libary/javafx-sdk-21.0.2/lib/*.jar",
+        "libary/mssql-jdbc-12.4.2.jre11.jar"
+    ],
+    "java.debug.settings.vmArgs": "--module-path \"libary/javafx-sdk-21.0.2/lib\" --add-modules javafx.controls,javafx.fxml,javafx.graphics,javafx.base,javafx.swing --enable-native-access=javafx.graphics"
 }

@@ -9,7 +9,8 @@ public class StartUpGui extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        // JavaFX sẽ vẫn chạy ngay cả khi đóng Stage login, vì `MainFrame` đang dùng JFXPanel (Swing + JavaFX).
+        // JavaFX sẽ vẫn chạy ngay cả khi đóng Stage login, vì `MainFrame` đang dùng
+        // JFXPanel (Swing + JavaFX).
         Platform.setImplicitExit(false);
 
         primaryStage.setTitle("Đăng nhập - Hệ Thống Quản Lý Khách Sạn");
