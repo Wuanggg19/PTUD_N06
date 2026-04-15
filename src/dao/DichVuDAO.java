@@ -22,11 +22,10 @@ public class DichVuDAO {
             ResultSet rs = statement.executeQuery(sql);
             while (rs.next()) {
                 DichVu dv = new DichVu(
-                    rs.getString(1),
-                    rs.getString(2),
-                    rs.getDouble(3),
-                    rs.getString(4)
-                );
+                        rs.getString(1),
+                        rs.getString(2),
+                        rs.getDouble(3),
+                        rs.getString(4));
                 ds.add(dv);
             }
         } catch (SQLException e) {

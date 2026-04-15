@@ -67,8 +67,8 @@ public class DashboardPanel extends JPanel {
         try {
             List<Phong> dsPhong = phongDAO.getAllPhong();
             int total = dsPhong.size();
-            long occupied = dsPhong.stream().filter(p -> p.getTrangThai() != null && p.getTrangThai().equals("Đang ở")).count();
-            long vacant = dsPhong.stream().filter(p -> p.getTrangThai() != null && p.getTrangThai().equals("Trống")).count();
+            long occupied = dsPhong.stream().filter(p -> p.getTrangThai() != null && p.getTrangThai().equalsIgnoreCase("DANG_O")).count();
+            long vacant = dsPhong.stream().filter(p -> p.getTrangThai() != null && p.getTrangThai().equalsIgnoreCase("TRONG")).count();
 
             List<HoaDon> dsHoaDon = hoaDonDAO.getAllHoaDon();
             double todayRevenue = dsHoaDon.stream()
@@ -126,16 +126,16 @@ public class DashboardPanel extends JPanel {
     }
 
     private JTable createVacantRoomTable() {
-        String[] columns = {"Mã Phòng", "Loại Phòng", "Số Giường", "Giá Phòng"};
+        String[] columns = {"Mã Phòng", "Loại Phòng", "Số Người", "Giá Phòng"};
         DefaultTableModel model = new DefaultTableModel(columns, 0);
 
         try {
-            List<Phong> ds = phongDAO.filterPhong("Trống", null);
+            List<Phong> ds = phongDAO.filterPhong("TRONG", null);
             ds.forEach(p -> {
                 model.addRow(new Object[]{
                     p.getMaPhong(),
                     p.getLoaiPhong(),
-                    p.getSoGiuong(),
+                    p.getSoNguoi(),
                     df.format(p.getGiaPhong())
                 });
             });
