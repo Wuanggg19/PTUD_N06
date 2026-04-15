@@ -70,6 +70,10 @@ public class PhieuDatPhongDAO {
         return null;
     }
 
+    public PhieuDatPhong getActivePhieuByMaPhong(String maPhong) {
+        return getPhieuDangOTheoPhong(maPhong);
+    }
+
     public boolean checkIn(String maPhieu) {
         Connection con = ConnectDB.getConnection();
         if (con == null) {
@@ -103,6 +107,64 @@ public class PhieuDatPhongDAO {
                     }
                 }
             }
+            con.commit();
+            return true;
+        } catch (SQLException e) {
+            try {
+                con.rollback();
+            } catch (SQLException ignored) {
+            }
+            e.printStackTrace();
+            return false;
+        } finally {
+            try {
+                con.setAutoCommit(true);
+            } catch (SQLException ignored) {
+            }
+        }
+    }
+
+    public boolean doiPhong(String maPhieu, String maPhongCu, String maPhongMoi, double giaMoi) {
+        Connection con = ConnectDB.getConnection();
+        if (con == null) {
+            return false;
+        }
+        try {
+            con.setAutoCommit(false);
+            Timestamp now = Timestamp.valueOf(LocalDateTime.now());
+
+            try (PreparedStatement st1 = con.prepareStatement(
+                    "UPDATE ChiTietPhieuDat SET ngayTra = ? WHERE maDatPhong = ? AND maPhong = ?")) {
+                st1.setTimestamp(1, now);
+                st1.setString(2, maPhieu);
+                st1.setString(3, maPhongCu);
+                st1.executeUpdate();
+            }
+
+            try (PreparedStatement st2 = con.prepareStatement(
+                    "UPDATE Phong SET trangThai = ? WHERE maPhong = ?")) {
+                st2.setString(1, RoomStatus.TRONG.getCode());
+                st2.setString(2, maPhongCu);
+                st2.executeUpdate();
+            }
+
+            try (PreparedStatement st3 = con.prepareStatement(
+                    "INSERT INTO ChiTietPhieuDat (maDatPhong, maPhong, giaThuePhong, ngayNhan, ngayTra) VALUES (?, ?, ?, ?, ?)")) {
+                st3.setString(1, maPhieu);
+                st3.setString(2, maPhongMoi);
+                st3.setDouble(3, giaMoi);
+                st3.setTimestamp(4, now);
+                st3.setTimestamp(5, Timestamp.valueOf(LocalDateTime.now().plusDays(1)));
+                st3.executeUpdate();
+            }
+
+            try (PreparedStatement st4 = con.prepareStatement(
+                    "UPDATE Phong SET trangThai = ? WHERE maPhong = ?")) {
+                st4.setString(1, RoomStatus.DANG_O.getCode());
+                st4.setString(2, maPhongMoi);
+                st4.executeUpdate();
+            }
+
             con.commit();
             return true;
         } catch (SQLException e) {

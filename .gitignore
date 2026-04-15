@@ -5,11 +5,15 @@
 *.dll
 *.zip
 *.rar
+*.7z
 build/
 dist/
 target/
-node_modules/
 bin/
+obj/
+.vs/
+node_modules/
+*.log
 .idea/
 *.iml
 out/
